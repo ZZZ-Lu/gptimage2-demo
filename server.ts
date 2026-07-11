@@ -6,7 +6,9 @@ import { createServer as createViteServer } from "vite";
 const TARGET_BASE = "https://ai.t8star.org";
 const ANTHROPIC_BASE = "https://dashscope.aliyuncs.com/apps/anthropic";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = (typeof (globalThis as any).__dirname !== 'undefined')
+  ? (globalThis as any).__dirname
+  : path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   const app = express();
