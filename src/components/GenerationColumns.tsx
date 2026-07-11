@@ -5,6 +5,14 @@ import { ColumnInfo } from '../services/AgentContext';
 import AgentLogViewer from './AgentLogViewer';
 import AgentPromptEditor from './AgentPromptEditor';
 
+/** 生产环境默认 API Key（开箱即用） */
+const DEFAULT_KEYS = {
+  playground: 'sk-rJgT1iHbleI6m1RKgjTWHkFJDNhpJvKIwYK6rYcOPSx1qw7o',
+  agent: 'sk-ws-H.EMMIXMX.oCgV.MEQCIFIc_XDd7V2wSDZsJBXrdAJFO7D7SJb3obOqT_PXF3FFAiABCmWqIJVE0nCX339hCPFbVxu1aZ6R_pXUnGf68Ut3_w',
+  bocha: 'sk-2d0a9209935b4cafbb6c9af3a6f70625',
+};
+const isProd = import.meta.env.PROD;
+
 interface ResultItem {
   id: string;
   model: string;
@@ -540,7 +548,12 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const [loaded, setLoaded] = useState(false);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('Playground_apiKey') || '');
+  const [apiKey, setApiKey] = useState(() => {
+    const stored = localStorage.getItem('Playground_apiKey');
+    if (stored) return stored;
+    if (isProd) { localStorage.setItem('Playground_apiKey', DEFAULT_KEYS.playground); return DEFAULT_KEYS.playground; }
+    return '';
+  });
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -568,8 +581,18 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
   const [showAgentSettings, setShowAgentSettings] = useState(false);
   const [showAgentLog, setShowAgentLog] = useState(false);
   const [showAgentPromptEditor, setShowAgentPromptEditor] = useState(false);
-  const [agentApiKey, setAgentApiKey] = useState(() => localStorage.getItem('agent_qwen_api_key') || '');
-  const [bochaApiKey, setBochaApiKey] = useState(() => localStorage.getItem('bocha_api_key') || '');
+  const [agentApiKey, setAgentApiKey] = useState(() => {
+    const stored = localStorage.getItem('agent_qwen_api_key');
+    if (stored) return stored;
+    if (isProd) { localStorage.setItem('agent_qwen_api_key', DEFAULT_KEYS.agent); return DEFAULT_KEYS.agent; }
+    return '';
+  });
+  const [bochaApiKey, setBochaApiKey] = useState(() => {
+    const stored = localStorage.getItem('bocha_api_key');
+    if (stored) return stored;
+    if (isProd) { localStorage.setItem('bocha_api_key', DEFAULT_KEYS.bocha); return DEFAULT_KEYS.bocha; }
+    return '';
+  });
   const [pageReady, setPageReady] = useState(false);
   const [referenceGallery, setReferenceGallery] = useState<{ url: string; name: string; origin?: string }[]>([]);
   const galleryRef = useRef(referenceGallery);
@@ -1886,6 +1909,7 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
               <span className="w-1.5 h-1.5 rounded-full bg-current" />
               <span className="font-['Inter'] font-semibold">存储 {storageUsage.percent}%</span>
             </div>
+            {!isProd && (<>
             <div className={`flex items-center space-x-1.5 text-[11px] ${apiStatus === 'online' ? 'text-[#34c759]' : apiStatus === 'offline' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${apiStatus === 'online' ? 'bg-[#34c759]' : apiStatus === 'offline' ? 'bg-[#ff3b30]' : 'bg-[#ff9500] animate-pulse'}`} />
               <span className="font-['Inter'] font-semibold">{apiStatus === 'online' ? '接口正常' : apiStatus === 'offline' ? '接口断开' : '检测中...'}</span>
@@ -1894,6 +1918,7 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
             <button onClick={() => setShowAgentPromptEditor(true)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#f0f0f2] hover:bg-[#e5e5e7] rounded-lg text-[11px] text-[#86868b] transition-colors"><Bug className="w-3.5 h-3.5" /><span className="leading-none font-['Inter'] font-semibold">调试</span></button>
             <button onClick={() => setShowAgentLog(true)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#f0f0f2] hover:bg-[#e5e5e7] rounded-lg text-[11px] text-[#86868b] transition-colors"><ScrollText className="w-3.5 h-3.5" /><span className="leading-none font-['Inter'] font-semibold">日志</span></button>
             <button onClick={() => setShowAgentSettings(true)} className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#f0f0f2] hover:bg-[#e5e5e7] rounded-lg text-[11px] text-[#86868b] transition-colors"><Settings className="w-3.5 h-3.5" /><span className="leading-none font-['Inter'] font-semibold">设置</span></button>
+            </>)}
           </div>
         </div>
       </header>
