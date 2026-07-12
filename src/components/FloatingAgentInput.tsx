@@ -1397,6 +1397,7 @@ export default function FloatingAgentInput() {
       {/* 鼠标跟随标签 */}
       <div
         ref={tooltipRef}
+        data-agent-fab
         className="fixed pointer-events-none z-[10000] transition-opacity duration-200"
         style={{ left: position.x, top: position.y, opacity: isOpen ? 0 : 1 }}
       >
