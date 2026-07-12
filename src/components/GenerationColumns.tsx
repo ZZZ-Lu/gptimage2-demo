@@ -1,11 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, X, Play, Image as ImageIcon, Settings, Bug, Link2, Upload, Copy, ClipboardPaste, Eraser, Check, Download, RefreshCw, Trash2, Star, ScrollText, Code2, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, X, Play, Image as ImageIcon, Settings, Bug, Link2, Upload, Copy, ClipboardPaste, Eraser, Check, Download, RefreshCw, Trash2, Star, ScrollText, Code2, ChevronRight } from 'lucide-react';
 import { ColumnInfo } from '../services/AgentContext';
 import AgentLogViewer from './AgentLogViewer';
 import AgentPromptEditor from './AgentPromptEditor';
-import TutorialGuide, { TUTORIAL_STEPS } from './TutorialGuide';
-import { TUTORIAL_PROJECT } from '../services/tutorialData';
 
 /** 生产环境默认 API Key（开箱即用） */
 const DEFAULT_KEYS = {
@@ -596,10 +594,6 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
     return '';
   });
   const [pageReady, setPageReady] = useState(false);
-  const [tutorialOpen, setTutorialOpen] = useState(() => {
-    return localStorage.getItem('tutorial_completed') !== 'true' && isProd;
-  });
-  const [tutorialStep, setTutorialStep] = useState(0);
   const [referenceGallery, setReferenceGallery] = useState<{ url: string; name: string; origin?: string }[]>([]);
   const galleryRef = useRef(referenceGallery);
   galleryRef.current = referenceGallery;
@@ -775,70 +769,18 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
     setProjectMenuOpen(false);
     setShowNewProjectModal(false);
     setNewProjectName('');
-    // 重置水平滚动
-    const container = horizontalScrollRef.current;
-    if (container) container.scrollLeft = 0;
-    // 延迟一帧后隐藏遮罩
-    requestAnimationFrame(() => setPageReady(true));
+    // 延迟一帧后设置水平滚动使两列居中
+    requestAnimationFrame(() => {
+      const container = horizontalScrollRef.current;
+      if (container) {
+        const contentWidth = container.scrollWidth;
+        const containerWidth = container.clientWidth;
+        const scrollTo = (contentWidth - containerWidth) / 2;
+        container.scrollLeft = Math.max(0, scrollTo);
+      }
+      setPageReady(true);
+    });
   };
-
-  const startTutorialProject = useCallback(async () => {
-    setPageReady(false);
-    await saveColumnsToStorage(columnsRef.current).catch(() => {});
-    saveScrollPositions(currentProjectId, scrollPosRef.current);
-
-    const newProject: Project = { id: `proj_tutorial_${Date.now()}`, name: TUTORIAL_PROJECT.name, createdAt: Date.now() };
-    const updated = [...projects, newProject];
-    setProjects(updated);
-    saveProjects(updated);
-    setCurrentProjectId(newProject.id);
-    saveCurrentProjectId(newProject.id);
-
-    const tutorialCols = TUTORIAL_PROJECT.columns.map((col, i) => ({
-      ...createEmptyColumn(i),
-      name: col.name,
-      model: col.model,
-      aspectRatio: col.aspectRatio,
-      resolution: col.resolution,
-      quality: col.quality,
-      prompt: col.prompt,
-      refImages: col.refImages,
-    }));
-    setColumns(tutorialCols);
-    columnsRef.current = tutorialCols;
-    setImageUrls({});
-
-    setReferenceGallery(TUTORIAL_PROJECT.gallery.map((item, i) => ({
-      url: '',
-      name: item.name,
-      origin: item.origin,
-    })));
-
-    localStorage.setItem('tutorial_started', 'true');
-    setTutorialOpen(true);
-    setTutorialStep(0);
-    setProjectMenuOpen(false);
-
-    requestAnimationFrame(() => setPageReady(true));
-  }, [projects, currentProjectId]);
-
-  const handleTutorialNext = useCallback(() => {
-    const next = tutorialStep + 1;
-    if (next >= TUTORIAL_STEPS.length) {
-      setTutorialOpen(false);
-      localStorage.setItem('tutorial_completed', 'true');
-    } else {
-      setTutorialStep(next);
-    }
-  }, [tutorialStep]);
-
-  const handleTutorialPrev = useCallback(() => {
-    if (tutorialStep > 0) setTutorialStep(tutorialStep - 1);
-  }, [tutorialStep]);
-
-  const handleTutorialClose = useCallback(() => {
-    setTutorialOpen(false);
-  }, []);
 
   const renameProject = (id: string, newName: string) => {
     if (!newName.trim()) return;
@@ -1932,7 +1874,7 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
               <span className="text-[11px] text-[#86868b]">1.0</span>
             </div>
             {/* 项目下拉菜单 */}
-            <div className="relative project-selector" ref={projectMenuRef}>
+            <div className="relative" ref={projectMenuRef}>
               <button
                 onClick={() => { setProjectMenuOpen(!projectMenuOpen); setEditingProjectId(null); }}
                 className="flex items-center gap-1 text-[11px] px-2 py-0.5 bg-[#f0f0f2] hover:bg-[#e5e5e7] rounded text-[#86868b] font-['Inter'] font-semibold transition-colors"
@@ -1958,8 +1900,7 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
                       )}
                     </div>
                   ))}
-                  <button onClick={(e) => { e.stopPropagation(); startTutorialProject(); }} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#7c3aed] hover:bg-purple-50 font-['Inter'] font-semibold transition-colors border-t border-zinc-100 mt-1"><Sparkles className="w-3.5 h-3.5" />教学项目 · 赛博西游</button>
-                  <button onClick={createProject} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#4f39f6] hover:bg-zinc-50 font-['Inter'] font-semibold transition-colors border-t border-zinc-100"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>新建项目</button>
+                  <button onClick={createProject} className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#4f39f6] hover:bg-zinc-50 font-['Inter'] font-semibold transition-colors border-t border-zinc-100 mt-1"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>新建项目</button>
                 </div>
               )}
             </div>
@@ -1990,7 +1931,7 @@ export default function GenerationColumns({ onOpenSandbox, agentActionsRef }: {
 
       {/* mini 面板 — 默认（窄条，垂直居中） */}
       {!galleryExpanded && (
-        <div className="gallery-panel absolute left-3 top-1/2 -translate-y-1/2 z-[200] w-12 bg-white rounded-2xl shadow-xl flex flex-col"
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-[200] w-12 bg-white rounded-2xl shadow-xl flex flex-col"
           onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; setIsDraggingToGallery(true); }}
           onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingToGallery(true); }}
           onDragLeave={e => { e.stopPropagation(); setIsDraggingToGallery(false); }}
@@ -3080,7 +3021,7 @@ function ColumnCard({
                 fileInputRef.current?.click();
               }, 0);
             }}
-            className={`ref-image-area relative rounded-xl transition-all cursor-pointer ${
+            className={`relative rounded-xl transition-all cursor-pointer ${
               isDraggingOver
                 ? 'bg-[#4f39f6]/10 ring-2 ring-[#4f39f6] ring-offset-1'
                 : 'bg-[#f1f5f9] hover:bg-[#f0f0f2]'
@@ -3229,7 +3170,6 @@ function ColumnCard({
             {/* Generate Button */}
             <button
               data-agent-generate={col.id}
-              data-generate-btn
               onClick={() => {
                 onGenerate(col);
               }}
@@ -3629,17 +3569,6 @@ function ColumnCard({
         </div>,
         document.body
       )}
-
-      <TutorialGuide
-        isOpen={tutorialOpen}
-        onClose={handleTutorialClose}
-        currentStep={tutorialStep}
-        onNext={handleTutorialNext}
-        onPrev={handleTutorialPrev}
-        onJump={(i) => setTutorialStep(i)}
-        totalSteps={TUTORIAL_STEPS.length}
-        step={TUTORIAL_STEPS[tutorialStep]}
-      />
       </div>
     </div>
   );
